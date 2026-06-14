@@ -4,7 +4,23 @@ import { GameMap } from './map.js';
 import { Game } from './game.js';
 import * as store from './storage.js';
 
+// Keep the bottom panel above the on-screen keyboard on mobile by tracking the
+// visual viewport (the area not covered by the keyboard) and exposing the
+// overlap as --kb, which the panel's `bottom` reads.
+function setupKeyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const update = () => {
+    const overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb', overlap + 'px');
+  };
+  vv.addEventListener('resize', update);
+  vv.addEventListener('scroll', update);
+  update();
+}
+
 async function boot() {
+  setupKeyboardInset();
   const loader = $('#loader');
   try {
     const [figures, gameMap] = await Promise.all([

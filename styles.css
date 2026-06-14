@@ -147,7 +147,7 @@ body {
 .tb-stat b { color: var(--text); font-weight: 700; }
 
 .panel {
-  position: absolute; z-index: 500; left: 50%; bottom: 0; transform: translateX(-50%);
+  position: absolute; z-index: 500; left: 50%; bottom: var(--kb, 0px); transform: translateX(-50%);
   width: min(560px, 100%);
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg-0) 18%, var(--glass) 100%);
@@ -346,5 +346,10 @@ body {
   .rv-portrait { height: 180px; }
 }
 @media (min-width: 561px) {
-  .panel { bottom: 18px; border-radius: 22px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .panel { bottom: calc(18px + var(--kb, 0px)); border-radius: 22px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+}
+/* On phones the floating panel can overlap the zoom buttons; pinch-to-zoom
+   covers it, so hide them below the floating-panel breakpoint. */
+@media (max-width: 560px) {
+  .leaflet-control-zoom { display: none !important; }
 }
