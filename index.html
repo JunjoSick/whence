@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Whence — guess the life from the map</title>
+  <meta name="description" content="Two places, two dates, one life. Read the map and name the historical figure." />
+  <meta name="theme-color" content="#0b1020" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="vendor/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ HOME ============ -->
+    <section id="home" class="screen">
+      <div class="home-inner">
+        <header class="brand">
+          <h1 class="logo">Whence</h1>
+          <p class="tagline">Two places. Two dates. One life.<br />Read the map — name the figure.</p>
+        </header>
+
+        <div class="play-cards">
+          <button id="play-daily" class="card card-daily">
+            <span class="card-kicker">Today's challenge</span>
+            <span class="card-title">Daily</span>
+            <span class="card-sub" id="daily-sub">Five lives. Six guesses each.</span>
+          </button>
+          <button id="play-endless" class="card card-endless">
+            <span class="card-kicker">Practice</span>
+            <span class="card-title">Endless</span>
+            <span class="card-sub">Play forever. Chase your streak.</span>
+          </button>
+        </div>
+
+        <div class="home-stats">
+          <div class="hs"><span class="hs-n" id="hs-best">0</span><span class="hs-l">best run</span></div>
+          <div class="hs"><span class="hs-n" id="hs-streak">0</span><span class="hs-l">day streak</span></div>
+          <div class="hs"><span class="hs-n" id="hs-acc">—</span><span class="hs-l">accuracy</span></div>
+        </div>
+
+        <footer class="home-foot">
+          <button id="how-open" class="link-btn">How to play</button>
+          <span class="dotsep">·</span>
+          <span class="muted"><span id="stat-count">0</span> figures · data from Wikidata</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="game" class="screen hidden">
+      <header class="topbar">
+        <button id="to-home" class="icon-btn" aria-label="Home">‹ Home</button>
+        <div class="tb-center"><span id="tb-mode">Endless</span></div>
+        <div id="tb-stat" class="tb-stat"></div>
+      </header>
+
+      <div id="map"></div>
+
+      <div class="panel">
+        <div class="clue-bar">
+          <div id="clue-life" class="clue-life"></div>
+          <div class="attempts-wrap">
+            <div id="attempts" class="attempts"></div>
+            <span id="attempts-left" class="attempts-left"></span>
+          </div>
+        </div>
+
+        <div class="search-wrap">
+          <input id="guess-input" type="text" autocomplete="off" autocapitalize="off"
+                 spellcheck="false" placeholder="Who lived this life?" />
+          <ul id="suggestions" class="suggestions"></ul>
+          <button id="giveup" class="giveup">Give up</button>
+        </div>
+
+        <div id="history" class="history"></div>
+      </div>
+    </section>
+
+    <!-- ============ REVEAL ============ -->
+    <div id="reveal" class="overlay hidden">
+      <div class="reveal-card">
+        <div class="rv-portrait"><img id="rv-img" alt="" loading="lazy" /></div>
+        <div class="rv-body">
+          <div id="rv-verdict" class="rv-verdict"></div>
+          <h2 id="rv-name" class="rv-name"></h2>
+          <div id="rv-life" class="rv-life"></div>
+          <div id="rv-occ" class="rv-occ"></div>
+          <div id="rv-route" class="rv-route"></div>
+          <p id="rv-desc" class="rv-desc"></p>
+          <div class="rv-actions">
+            <a id="rv-wiki" class="rv-wiki" target="_blank" rel="noopener">Wikipedia ↗</a>
+            <button id="reveal-next" class="btn-primary">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DAILY RESULTS ============ -->
+    <div id="results" class="overlay hidden">
+      <div class="results-card">
+        <span class="res-kicker">Daily · <span id="res-date"></span></span>
+        <div class="res-score" id="res-score">0</div>
+        <div class="res-sub" id="res-sub"></div>
+        <div id="res-grid" class="res-grid"></div>
+        <div id="res-streak" class="res-streak"></div>
+        <div class="res-actions">
+          <button id="res-share" class="btn-primary">Share result</button>
+          <button id="res-endless" class="btn-ghost">Play endless</button>
+          <button id="res-home" class="btn-ghost">Home</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ HOW TO ============ -->
+    <div id="howto" class="overlay hidden">
+      <div class="howto-card">
+        <h2>How to play</h2>
+        <ol class="how-list">
+          <li><b>★ birth</b> and <b>✦ death</b> are pinned on a borderless map, each with its year.</li>
+          <li>Type to guess <b>who lived this life</b>. You get <b>6 guesses</b>.</li>
+          <li>Each wrong guess shows how far off you were — <b>direction &amp; distance</b> to the real birthplace, the <b>year gap</b>, and any <b>shared profession</b>.</li>
+          <li>Fewer guesses = more points. <b>Daily</b> is five lives, shared by everyone. <b>Endless</b> runs forever.</li>
+        </ol>
+        <button id="how-close" class="btn-primary">Got it</button>
+      </div>
+    </div>
+
+    <!-- ============ LOADER ============ -->
+    <div id="loader" class="loader"><div class="spinner"></div><span>Charting lives…</span></div>
+  </div>
+
+  <script src="vendor/leaflet.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
