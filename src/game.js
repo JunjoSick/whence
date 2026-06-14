@@ -218,6 +218,7 @@ export class Game {
 
   giveUp() {
     if (this.round.over) return;
+    this.round.gaveUp = true;
     this.endRound(false);
   }
 
@@ -279,10 +280,10 @@ export class Game {
       img.style.display = 'none';
     }
 
-    $('#rv-verdict').className = 'rv-verdict ' + (solved ? 'win' : 'lose');
+    $('#rv-verdict').className = 'rv-verdict ' + (solved ? 'win' : this.round.gaveUp ? 'gaveup' : 'lose');
     $('#rv-verdict').textContent = solved
       ? `Solved in ${used} ${used === 1 ? 'guess' : 'guesses'}  ·  +${gained}`
-      : 'Out of guesses';
+      : this.round.gaveUp ? 'Gave up' : 'Out of guesses';
 
     const meta = DIFF_META[f.diff] || DIFF_META.medium;
     const diffEl = $('#rv-diff');
