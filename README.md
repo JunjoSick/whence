@@ -1,5 +1,7 @@
 # Whence
 
+**▶ Play: https://junjosick.github.io/whence/**
+
 A geography-history guessing game. You're shown a **birth** (★) and **death** (✦)
 location pinned on a borderless, label-free world map — each with its year — and you
 have to name the historical figure who lived that life.
