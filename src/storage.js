@@ -12,6 +12,7 @@ const DEFAULTS = {
   daily: {}, // dateKey -> { score, results:[guessesUsedOrNull], done:true }
   dailyStreak: 0,
   dailyLastDate: null,
+  endlessDiff: 'medium', // selected Endless difficulty
 };
 
 function load() {
@@ -49,6 +50,12 @@ export function recordRound(solved, guessesUsed) {
 export function recordEndless(score, streak) {
   state.endlessBest = Math.max(state.endlessBest, score);
   state.endlessBestStreak = Math.max(state.endlessBestStreak, streak);
+  save();
+}
+
+export const getEndlessDiff = () => state.endlessDiff || 'medium';
+export function setEndlessDiff(diff) {
+  state.endlessDiff = diff;
   save();
 }
 

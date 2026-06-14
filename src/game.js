@@ -1,6 +1,6 @@
 // Game orchestrator: round lifecycle, scoring, the two modes, and all the
 // in-game UI (guess history, reveal card, daily results).
-import { $, el, fmtYear, haversine, bearing, arrowFor, fmtKm, hashStr, rng, shuffle, todayKey, sleep } from './util.js';
+import { $, el, fmtYear, haversine, bearing, arrowFor, fmtKm, hashStr, rng, shuffle, todayKey, computeDifficulty, heatFor } from './util.js';
 import { AutoComplete } from './search.js';
 import { buildShare, copyShare } from './share.js';
 import * as store from './storage.js';
@@ -9,15 +9,35 @@ const MAX_GUESSES = 6;
 const DAILY_ROUNDS = 5;
 const points = (g) => Math.max(0, 1000 - (g - 1) * 150);
 
+const DIFF_META = {
+  easy:   { label: 'Easy',   level: 0 },
+  medium: { label: 'Medium', level: 1 },
+  hard:   { label: 'Hard',   level: 2 },
+  expert: { label: 'Expert', level: 3 },
+};
+
 export class Game {
   constructor(figures, gameMap) {
     this.figures = figures;
     this.byId = new Map(figures.map((f) => [f.id, f]));
     this.map = gameMap;
-    // figures.json is sorted by pageviews desc, so the head is the most
-    // recognizable. Daily stays tight (household names); Endless casts wider.
-    this.dailyPool = figures.slice(0, 220);
-    this.endlessPool = figures.slice(0, 650);
+
+    // figures.json is sorted by pageviews desc, so the index is the fame rank.
+    // Tag every figure with a difficulty tier + the reasons it's hard.
+    figures.forEach((f, i) => {
+      const d = computeDifficulty(f, i);
+      f.diff = d.tier;
+      f.diffLevel = d.level;
+      f.diffReasons = d.reasons;
+    });
+    // Endless draws from a difficulty bucket; Daily from a recognizable head.
+    this.byTier = {
+      easy: figures.filter((f) => f.diffLevel === 0),
+      medium: figures.filter((f) => f.diffLevel <= 1),
+      hard: figures.filter((f) => f.diffLevel >= 2),
+    };
+    this.dailyPool = figures.slice(0, 320);
+    this.endlessDiff = store.getEndlessDiff();
 
     // cache DOM
     this.elHome = $('#home');
@@ -47,9 +67,15 @@ export class Game {
   }
 
   // ---- modes --------------------------------------------------------------
+  setEndlessDiff(diff) {
+    this.endlessDiff = diff;
+    store.setEndlessDiff(diff);
+  }
+
   startEndless() {
     this.mode = 'endless';
-    this.endless = { score: 0, streak: 0, count: 0, queue: shuffle(this.endlessPool) };
+    const pool = this.byTier[this.endlessDiff] || this.byTier.medium;
+    this.endless = { score: 0, streak: 0, count: 0, pool, queue: shuffle(pool) };
     this.enterGame();
     this.nextRound();
   }
@@ -58,8 +84,10 @@ export class Game {
     this.mode = 'daily';
     const key = todayKey();
     const seed = hashStr('whence|' + key);
-    const order = shuffle(this.dailyPool, rng(seed));
-    const figs = order.slice(0, DAILY_ROUNDS);
+    // Pick from the recognizable head, then ramp easiest -> hardest.
+    const figs = shuffle(this.dailyPool, rng(seed))
+      .slice(0, DAILY_ROUNDS)
+      .sort((a, b) => a.diffLevel - b.diffLevel);
     const prev = store.getDaily(key);
     this.daily = { key, figs, idx: 0, results: [], score: 0, replay: !!(prev && prev.done) };
     this.enterGame();
@@ -70,7 +98,7 @@ export class Game {
   nextRound() {
     $('#reveal').classList.add('hidden');
     if (this.mode === 'endless') {
-      if (!this.endless.queue.length) this.endless.queue = shuffle(this.endlessPool);
+      if (!this.endless.queue.length) this.endless.queue = shuffle(this.endless.pool);
       this.loadRound(this.endless.queue.pop());
     } else {
       this.daily.idx++;
@@ -90,9 +118,19 @@ export class Game {
     $('#giveup').disabled = false;
     $('#history').innerHTML = '';
     this.renderClue();
+    this.renderDiffBadge(figure);
     this.updateAttempts();
     this.updateTopbar();
     setTimeout(() => this.ac.focus(), 300);
+  }
+
+  renderDiffBadge(f) {
+    const meta = DIFF_META[f.diff] || DIFF_META.medium;
+    const badge = $('#diff-badge');
+    badge.className = `diff-badge diff-${f.diff}`;
+    const reason = f.diffReasons && f.diffReasons.length ? ` · ${f.diffReasons[0]}` : '';
+    badge.innerHTML = `<span class="diff-dots">${'●'.repeat(meta.level + 1)}${'○'.repeat(3 - meta.level)}</span>` +
+      `<span class="diff-label">${meta.label}</span><span class="diff-why">${reason}</span>`;
   }
 
   renderClue() {
@@ -146,17 +184,24 @@ export class Game {
     const dist = haversine(guess.birthLat, guess.birthLng, target.birthLat, target.birthLng);
     const brg = bearing(guess.birthLat, guess.birthLng, target.birthLat, target.birthLng);
     const dy = target.birthYear - guess.birthYear;
-    const yearText = dy === 0 ? 'same birth year' : `${Math.abs(dy)} yrs ${dy > 0 ? 'newer' : 'older'}`;
+    const yearText = dy === 0 ? 'same year' : `${Math.abs(dy)} yrs ${dy > 0 ? 'newer' : 'older'}`;
     const shared = guess.occupations.filter((o) => target.occupations.includes(o));
-    const heat = dist < 400 ? 'hot' : dist < 1500 ? 'warm' : dist < 5000 ? 'cool' : 'cold';
+    const { label, key, closeness } = heatFor(dist);
+    const arrow = dist < 40 ? '◎' : arrowFor(brg);
 
     const row = el(
       'div',
-      { class: `guess-row heat-${heat}` },
-      el('span', { class: 'gr-name', text: guess.name }),
-      el('span', { class: 'gr-geo', html: `${dist < 30 ? '◎' : arrowFor(brg)} ${fmtKm(dist)}` }),
-      el('span', { class: 'gr-year', text: yearText }),
-      shared.length ? el('span', { class: 'gr-occ', text: `also ${shared[0]}` }) : null
+      { class: `guess-row heat-${key}` },
+      el('div', { class: 'gr-top' },
+        el('span', { class: 'gr-name', text: guess.name }),
+        el('span', { class: 'gr-heat', text: label })
+      ),
+      el('div', { class: 'gr-bar' }, el('i', { style: `width:${Math.round(closeness * 100)}%` })),
+      el('div', { class: 'gr-meta' },
+        el('span', { class: 'gr-geo', html: `<b>${arrow}</b> ${fmtKm(dist)}` }),
+        el('span', { class: 'gr-year', html: `${dy > 0 ? '▲' : dy < 0 ? '▼' : '='} ${yearText}` }),
+        shared.length ? el('span', { class: 'gr-occ', text: `also ${shared[0]}` }) : null
+      )
     );
     $('#history').prepend(row);
   }
@@ -230,9 +275,31 @@ export class Game {
     $('#rv-verdict').textContent = solved
       ? `Solved in ${used} ${used === 1 ? 'guess' : 'guesses'}  ·  +${gained}`
       : 'Out of guesses';
+
+    const meta = DIFF_META[f.diff] || DIFF_META.medium;
+    const diffEl = $('#rv-diff');
+    diffEl.className = `rv-diff diff-${f.diff}`;
+    diffEl.textContent = meta.label + (f.diffReasons.length ? ` · ${f.diffReasons.join(' · ')}` : '');
+
     $('#rv-name').textContent = f.name;
     $('#rv-life').textContent = life;
     $('#rv-desc').textContent = f.desc || '';
+
+    // Closest guess — turns a miss into a "so close!" beat.
+    const wrong = this.round.guesses.filter((g) => g.id !== f.id);
+    const closeEl = $('#rv-closest');
+    if (wrong.length) {
+      let best = null;
+      let bestD = Infinity;
+      for (const g of wrong) {
+        const d = haversine(g.birthLat, g.birthLng, f.birthLat, f.birthLng);
+        if (d < bestD) { bestD = d; best = g; }
+      }
+      closeEl.innerHTML = `Closest: <b>${best.name}</b> — born ${fmtKm(bestD)} away`;
+      closeEl.style.display = '';
+    } else {
+      closeEl.style.display = 'none';
+    }
 
     const occWrap = $('#rv-occ');
     occWrap.innerHTML = '';
@@ -241,9 +308,10 @@ export class Game {
     const route = $('#rv-route');
     if (f.birthPlace || f.deathPlace) {
       const parts = [];
-      if (f.birthPlace) parts.push(`★ ${f.birthPlace}`);
-      if (f.deathPlace) parts.push(`✦ ${f.deathPlace}`);
-      route.textContent = parts.join('   →   ') + (span ? `   ·   ${fmtKm(span)} apart` : '');
+      if (f.birthPlace) parts.push(`<span class="rt-b">Born ${f.birthPlace}</span>`);
+      if (f.deathPlace) parts.push(`<span class="rt-d">Died ${f.deathPlace}</span>`);
+      route.innerHTML = parts.join('<span class="rt-arr">→</span>') +
+        (span ? `<span class="rt-span">${fmtKm(span)} apart</span>` : '');
       route.style.display = '';
     } else {
       route.style.display = 'none';

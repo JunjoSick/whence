@@ -1,5 +1,5 @@
 // Bootstrap: load data + map, wire the home screen, launch modes.
-import { $, todayKey } from './util.js';
+import { $, $$, todayKey } from './util.js';
 import { GameMap } from './map.js';
 import { Game } from './game.js';
 import * as store from './storage.js';
@@ -38,6 +38,12 @@ async function boot() {
     $('#how-close').addEventListener('click', () => $('#howto').classList.add('hidden'));
     $('#res-home').addEventListener('click', () => game.goHome());
     $('#res-endless').addEventListener('click', () => game.startEndless());
+
+    // Endless difficulty selector
+    const pills = $$('#diff-select .ds-pill');
+    const markDiff = () => pills.forEach((p) => p.classList.toggle('active', p.dataset.diff === game.endlessDiff));
+    pills.forEach((p) => p.addEventListener('click', () => { game.setEndlessDiff(p.dataset.diff); markDiff(); }));
+    markDiff();
 
     document.addEventListener('refresh-home', renderHome);
     renderHome();

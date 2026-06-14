@@ -104,3 +104,39 @@ export function todayKey(d = new Date()) {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Rate how hard a figure is to guess, from three signals:
+ *  - recognizability  (rank in the pageviews-sorted list; lower = more famous)
+ *  - missing info     (no death pin = only half the map to reason from)
+ *  - era              (ancient / pre-modern figures are less familiar)
+ * Returns { tier, level (0..3), reasons[] }.
+ */
+const DIFF_TIERS = ['easy', 'medium', 'hard', 'expert'];
+export function computeDifficulty(f, rank) {
+  let score = 0;
+  const reasons = [];
+  if (rank >= 500) { score += 3; reasons.push('niche fame'); }
+  else if (rank >= 260) { score += 2; }
+  else if (rank >= 110) { score += 1; }
+  if (f.deathLat == null) {
+    score += 1;
+    reasons.push(f.deathYear == null ? 'still living' : 'death place unknown');
+  }
+  if (f.birthYear < 0) { score += 2; reasons.push('ancient era'); }
+  else if (f.birthYear < 1500) { score += 1; reasons.push('pre-modern'); }
+  const level = score <= 1 ? 0 : score === 2 ? 1 : score === 3 ? 2 : 3;
+  return { tier: DIFF_TIERS[level], level, reasons };
+}
+
+/** Heat label + 0..1 closeness for a birthplace-distance (km). */
+export function heatFor(km) {
+  const closeness = Math.max(0, 1 - Math.sqrt(km / 12000));
+  let label, key;
+  if (km < 150) { label = 'Boiling'; key = 'hot'; }
+  else if (km < 600) { label = 'Hot'; key = 'hot'; }
+  else if (km < 2000) { label = 'Warm'; key = 'warm'; }
+  else if (km < 5000) { label = 'Cool'; key = 'cool'; }
+  else { label = 'Cold'; key = 'cold'; }
+  return { label, key, closeness };
+}

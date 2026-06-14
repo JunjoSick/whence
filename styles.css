@@ -200,24 +200,65 @@ body {
 .sugg-name { font-weight: 500; font-size: 15px; }
 .sugg-meta { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
 
-.history { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; max-height: 168px; overflow-y: auto; }
+.history { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 190px; overflow-y: auto; }
 .guess-row {
-  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 10px; font-size: 13px;
-  background: rgba(255, 255, 255, 0.035); border-left: 3px solid var(--cold);
+  padding: 9px 12px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04); border-left: 3px solid var(--heatc, var(--cold));
   animation: rowin 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-.guess-row.heat-hot { border-left-color: var(--hot); }
-.guess-row.heat-warm { border-left-color: var(--warm); }
-.guess-row.heat-cool { border-left-color: var(--cool); }
-.guess-row.heat-cold { border-left-color: var(--cold); }
-.gr-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.guess-row.heat-hot { --heatc: var(--hot); }
+.guess-row.heat-warm { --heatc: var(--warm); }
+.guess-row.heat-cool { --heatc: var(--cool); }
+.guess-row.heat-cold { --heatc: var(--cold); }
+.gr-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gr-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gr-heat { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--heatc); white-space: nowrap; }
+.gr-bar { height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); margin: 7px 0; overflow: hidden; }
+.gr-bar > i { display: block; height: 100%; border-radius: 999px; background: var(--heatc); width: 0; transition: width 0.55s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.gr-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .gr-geo { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
-.gr-year { color: var(--muted); font-size: 12px; white-space: nowrap; }
-.gr-occ {
-  grid-column: 1 / -1; font-size: 11px; color: var(--brand);
-  text-transform: uppercase; letter-spacing: 0.06em; margin-top: -2px;
+.gr-geo b { color: var(--heatc); }
+.gr-year { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gr-occ { color: var(--brand); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+
+/* ============================================================
+   DIFFICULTY — home selector, in-game badge, reveal pill
+   ============================================================ */
+.diff-easy   { --diffc: var(--brand); }
+.diff-medium { --diffc: var(--accent); }
+.diff-hard   { --diffc: var(--warm); }
+.diff-expert { --diffc: #ff7a7a; }
+
+/* home selector */
+.diff-select { display: flex; flex-direction: column; gap: 9px; align-items: center; width: 100%; }
+.ds-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--faint); font-weight: 600; }
+.ds-pills { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); padding: 4px; border-radius: 13px; width: 100%; }
+.ds-pill { flex: 1; padding: 9px 10px; border: none; background: transparent; color: var(--muted); font: 600 13px var(--sans); border-radius: 9px; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.ds-pill:hover { color: var(--text); }
+.ds-pill.active { background: rgba(122, 162, 255, 0.16); color: var(--text); box-shadow: inset 0 0 0 1px rgba(122, 162, 255, 0.3); }
+
+/* in-game floating badge */
+.diff-badge {
+  position: absolute; z-index: 480; top: calc(56px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 7px; padding: 5px 13px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(10px);
+  font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none;
+  box-shadow: 0 6px 22px -10px rgba(0, 0, 0, 0.6);
 }
+.diff-dots { color: var(--diffc, var(--muted)); font-size: 8px; letter-spacing: 1px; }
+.diff-label { color: var(--diffc, var(--text)); text-transform: uppercase; letter-spacing: 0.09em; }
+.diff-why { color: var(--faint); font-weight: 500; }
+
+/* reveal pill + closest-guess + route labels */
+.rv-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.rv-head .rv-verdict { margin-bottom: 0; }
+.rv-diff { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 999px; color: var(--diffc, var(--muted)); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); }
+.rv-closest { font-size: 13px; color: var(--muted); margin-top: 14px; padding: 10px 13px; background: rgba(255, 255, 255, 0.04); border-radius: 10px; border-left: 3px solid var(--accent); }
+.rv-closest b { color: var(--text); }
+.rt-b { color: var(--birth); font-weight: 600; }
+.rt-d { color: var(--death); font-weight: 600; }
+.rt-arr { color: var(--faint); margin: 0 8px; }
+.rt-span { color: var(--faint); margin-left: 8px; }
 
 /* ============================================================
    PINS (HTML divIcons over the canvas map)

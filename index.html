@@ -36,6 +36,15 @@
           </button>
         </div>
 
+        <div class="diff-select" id="diff-select" role="group" aria-label="Endless difficulty">
+          <span class="ds-label">Endless difficulty</span>
+          <div class="ds-pills">
+            <button class="ds-pill" data-diff="easy">Easy</button>
+            <button class="ds-pill" data-diff="medium">Medium</button>
+            <button class="ds-pill" data-diff="hard">Hard</button>
+          </div>
+        </div>
+
         <div class="home-stats">
           <div class="hs"><span class="hs-n" id="hs-best">0</span><span class="hs-l">best run</span></div>
           <div class="hs"><span class="hs-n" id="hs-streak">0</span><span class="hs-l">day streak</span></div>
@@ -59,6 +68,7 @@
       </header>
 
       <div id="map"></div>
+      <div id="diff-badge" class="diff-badge"></div>
 
       <div class="panel">
         <div class="clue-bar">
@@ -85,12 +95,16 @@
       <div class="reveal-card">
         <div class="rv-portrait"><img id="rv-img" alt="" loading="lazy" /></div>
         <div class="rv-body">
-          <div id="rv-verdict" class="rv-verdict"></div>
+          <div class="rv-head">
+            <div id="rv-verdict" class="rv-verdict"></div>
+            <div id="rv-diff" class="rv-diff"></div>
+          </div>
           <h2 id="rv-name" class="rv-name"></h2>
           <div id="rv-life" class="rv-life"></div>
           <div id="rv-occ" class="rv-occ"></div>
           <div id="rv-route" class="rv-route"></div>
           <p id="rv-desc" class="rv-desc"></p>
+          <div id="rv-closest" class="rv-closest"></div>
           <div class="rv-actions">
             <a id="rv-wiki" class="rv-wiki" target="_blank" rel="noopener">Wikipedia ↗</a>
             <button id="reveal-next" class="btn-primary">Next →</button>
