@@ -112,6 +112,9 @@ export class Game {
 
   loadRound(figure) {
     this.round = { figure, guesses: [], solved: false, over: false };
+    // Warm the portrait into cache now, so the reveal shows it instantly later
+    // instead of lazily swapping the previous figure's face.
+    if (figure.image) { this._preload = new Image(); this._preload.src = figure.image; }
     this.map.show(figure);
     this.ac.clear();
     $('#guess-input').disabled = false;
@@ -262,11 +265,16 @@ export class Game {
       : null;
 
     const img = $('#rv-img');
+    img.onload = null;
+    img.onerror = null;
     if (f.image) {
       img.style.display = '';
-      img.src = f.image;
+      img.classList.remove('loaded'); // hide until the new portrait is ready
       img.alt = f.name;
+      img.onload = () => img.classList.add('loaded');
       img.onerror = () => { img.style.display = 'none'; };
+      img.src = f.image;
+      if (img.complete && img.naturalWidth) img.classList.add('loaded'); // already cached
     } else {
       img.style.display = 'none';
     }
